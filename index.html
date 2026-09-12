@@ -152,12 +152,10 @@
   </main>
 
   <script>
-    // ==========================================
-    // ضع هنا رابط النشر (Web App URL) الحقيقي الخاص بك من Apps Script
-    // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec"; 
+    // 1. رابط الـ Web App الخاص بك المنشور من Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjY1zI5R0L-aF7Bw7UuR8c_test/exec"; 
     
-    // مفتاح VAPID من إعدادات Firebase Cloud Messaging
+    // مفتاح VAPID العام من إعدادات Firebase Cloud Messaging
     const VAPID_KEY = "BDyC6b7rYwQ_YOUR_FIREBASE_KEY";
 
     const firebaseConfig = {
@@ -173,12 +171,27 @@
     const messaging = ('Notification' in window) ? firebase.messaging() : null;
     let currentFcmToken = localStorage.getItem("center_fcm_token") || "";
 
+    // حساب المسار الدقيق الكامل للـ Service Worker داخل المستودع لتفادي خطأ 404
+    const swPath = new URL('./firebase-messaging-sw.js', window.location.href).href;
+    let swRegistration = null;
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./firebase-messaging-sw.js').catch(console.warn);
+      navigator.serviceWorker.register(swPath)
+        .then((registration) => {
+          swRegistration = registration;
+          console.log("تم تسجيل الـ Service Worker بنجاح بالمسار الكامل:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("خطأ في تسجيل Service Worker:", err);
+        });
     }
 
     function updateNotifBadge() {
       const badge = document.getElementById("notifBadge");
+      if (!('Notification' in window)) {
+        badge.innerText = "غير مدعوم";
+        return;
+      }
       if (Notification.permission === "granted" && currentFcmToken) {
         badge.innerText = "التنبيهات مفعلة ✓";
         badge.className = "bg-emerald-50 text-emerald-600 border border-emerald-100 text-[11px] font-bold px-2.5 py-1 rounded-full";
@@ -189,11 +202,21 @@
     }
     updateNotifBadge();
 
+    // تفعيل الإشعارات وتمرير swRegistration إجبارياً
     document.getElementById("btnEnableNotifications").addEventListener("click", async () => {
       try {
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
-          const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+          
+          if (!swRegistration) {
+            swRegistration = await navigator.serviceWorker.ready;
+          }
+
+          const token = await messaging.getToken({ 
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: swRegistration
+          });
+
           currentFcmToken = token;
           localStorage.setItem("center_fcm_token", token);
           updateNotifBadge();
@@ -202,11 +225,12 @@
           alert("تم رفض إذن الإشعارات من إعدادات المتصفح.");
         }
       } catch (err) {
+        console.error("تفاصيل الخطأ:", err);
         alert("خطأ في جلب رمز الإشعارات: " + err.message);
       }
     });
 
-    // دالة الإرسال الآمنة الخالية من مشاكل الـ CORS
+    // دالة الإرسال المتوافقة مع Apps Script لمنع مشاكل CORS
     async function sendToAppsScript(payload) {
       const response = await fetch(SCRIPT_URL, {
         method: "POST",
