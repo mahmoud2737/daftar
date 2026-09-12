@@ -3,689 +3,527 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المنصة التعليمية للسنتر</title>
+  <title>السنتر التعليمي - منصة الطلاب والمواعيد</title>
+  
+  <!-- إعدادات تطبيق الويب والتثبيت PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="السنتر">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2997/2997322.png">
+
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f46e5">
-  <!-- مكتبات Firebase المتوافقة -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
+  <!-- Firebase SDKs (v9 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
   <style>
-    body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-    .glassmorphism { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
   </style>
 </head>
-<body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
-<button id="pwaInstallBtn" class="hidden w-full mb-4 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition">
-  <i data-lucide="download" class="w-4 h-4"></i>
-  <span>تثبيت تطبيق السنتر على هاتفك 📲</span>
-</button>
-  <!-- الشريط العلوي -->
-  <header class="sticky top-0 z-50 glassmorphism border-b border-slate-200/80 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-20 select-none">
+
+  <!-- ==================== بطاقة تثبيت التطبيق الذكية ==================== -->
+  <div id="pwaBanner" class="hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-slate-900/95 text-white p-4 rounded-2xl shadow-2xl border border-indigo-500/30 backdrop-blur-md z-50 transition-all duration-300">
+    <div class="flex items-center gap-3">
+      <img src="https://cdn-icons-png.flaticon.com/512/2997/2997322.png" alt="أيقونة السنتر" class="w-12 h-12 rounded-xl bg-white p-1 shadow-inner">
+      <div class="flex-1">
+        <h4 class="font-bold text-sm text-indigo-300">تطبيق السنتر التعليمي 📲</h4>
+        <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">ثبّت التطبيق على هاتفك لتصلك تنبيهات الحصص ومتابعة الجداول فوراً.</p>
+      </div>
+      <button id="closePwaBanner" class="text-slate-400 hover:text-white p-1 text-sm">✕</button>
+    </div>
+    <div class="mt-3 flex gap-2">
+      <button id="btnInstallApp" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition shadow-md flex items-center justify-center gap-1.5">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>تثبيت التطبيق على الشاشة الآن</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- نافذة التوجيه اليدوي للتثبيت في حال تعذر المتصفح -->
+  <div id="manualInstallModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white text-slate-900 rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl">
+      <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 font-bold text-2xl shadow-inner">📲</div>
+      <h3 class="font-bold text-base mb-1">خطوة بسيطة للتثبيت</h3>
+      <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+        اضغط على زر خيارات المتصفح <strong class="text-slate-900">(الثلاث نقاط ⋮ أعلى الشاشة)</strong> ثم اختر:
+        <br>
+        <span class="inline-block mt-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl font-bold text-xs border border-indigo-200">
+          "إضافة إلى الشاشة الرئيسية" أو "تثبيت التطبيق"
+        </span>
+      </p>
+      <button onclick="document.getElementById('manualInstallModal').classList.add('hidden')" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl text-xs font-bold transition">
+        فهمت ذلك ✓
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== رأس الصفحة ==================== -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-200">
           <i data-lucide="graduation-cap" class="w-6 h-6"></i>
         </div>
         <div>
-          <h1 id="brandName" class="font-extrabold text-lg text-slate-900 leading-tight">سنتر الأوائل التعليمي</h1>
-          <p id="announcementText" class="text-xs text-slate-500 font-medium">جاري المزامنة...</p>
+          <h1 id="centerNameTitle" class="font-black text-slate-900 text-base leading-tight">السنتر التعليمي</h1>
+          <p id="centerSubTitle" class="text-xs text-slate-500 font-medium">لوحة متابعة المواعيد والإشعارات</p>
         </div>
       </div>
-
-      <nav class="hidden md:flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm font-semibold">
-        <button onclick="switchTab('today')" id="tab-today" class="tab-btn px-4 py-1.5 rounded-lg bg-white text-indigo-600 shadow-sm">مواعيد اليوم</button>
-        <button onclick="switchTab('teachers')" id="tab-teachers" class="tab-btn px-4 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600">المعلمين</button>
-        <button onclick="switchTab('schedules')" id="tab-schedules" class="tab-btn px-4 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600">الجداول والأسعار</button>
-        <button onclick="switchTab('offers')" id="tab-offers" class="tab-btn px-4 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600">العروض</button>
-        <button onclick="switchTab('register')" id="tab-register" class="tab-btn px-4 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600">تسجيل طالب</button>
-        <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800" title="لوحة الأدمن"><i data-lucide="lock" class="w-4 h-4"></i></button>
-      </nav>
-
-      <a id="phoneCallBtn" href="tel:" class="hidden sm:inline-flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition">
-        <i data-lucide="phone-call" class="w-4 h-4"></i>
-        <span>اتصل بنا</span>
-      </a>
-    </div>
-
-    <!-- شريط الجوال السفلي -->
-    <div class="md:hidden flex items-center justify-around border-t border-slate-200 bg-white py-2 text-xs font-semibold">
-      <button onclick="switchTab('today')" class="mobile-tab-btn text-indigo-600 flex flex-col items-center gap-1" data-target="today">
-        <i data-lucide="calendar-clock" class="w-5 h-5"></i><span>اليوم</span>
-      </button>
-      <button onclick="switchTab('teachers')" class="mobile-tab-btn text-slate-500 flex flex-col items-center gap-1" data-target="teachers">
-        <i data-lucide="users" class="w-5 h-5"></i><span>المعلمين</span>
-      </button>
-      <button onclick="switchTab('schedules')" class="mobile-tab-btn text-slate-500 flex flex-col items-center gap-1" data-target="schedules">
-        <i data-lucide="table" class="w-5 h-5"></i><span>الجداول</span>
-      </button>
-      <button onclick="switchTab('offers')" class="mobile-tab-btn text-slate-500 flex flex-col items-center gap-1" data-target="offers">
-        <i data-lucide="sparkles" class="w-5 h-5"></i><span>العروض</span>
-      </button>
-      <button onclick="switchTab('register')" class="mobile-tab-btn text-slate-500 flex flex-col items-center gap-1" data-target="register">
-        <i data-lucide="user-plus" class="w-5 h-5"></i><span>تسجيل</span>
-      </button>
-      <button onclick="switchTab('admin')" class="mobile-tab-btn text-slate-500 flex flex-col items-center gap-1" data-target="admin">
-        <i data-lucide="lock" class="w-5 h-5"></i><span>أدمن</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="toggleAdminBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+          <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i>
+          <span>لوحة الأدمن</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- شاشة التحميل -->
-  <div id="loader" class="flex flex-col items-center justify-center my-20">
-    <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-    <p class="mt-4 text-sm font-bold text-slate-600">جاري مزامنة بيانات السنتر...</p>
-  </div>
+  <main class="max-w-4xl mx-auto px-4 py-5 space-y-5">
 
-  <main id="mainContainer" class="hidden max-w-6xl mx-auto px-4 py-6 w-full flex-1">
+    <!-- شريط الإعلانات الترحيبية -->
+    <div id="announcementBox" class="bg-gradient-to-l from-indigo-600 to-indigo-700 text-white p-4 rounded-2xl shadow-lg shadow-indigo-100 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-white/10 rounded-xl">
+          <i data-lucide="bell-ring" class="w-5 h-5 text-indigo-200"></i>
+        </div>
+        <p id="announcementText" class="text-xs sm:text-sm font-semibold leading-relaxed">
+          أهلاً بكم في منصة السنتر الرسمية! بادر بتسجيل بياناتك وتفعيل التنبيهات لتصلك مواعيدك أولاً بأول.
+        </p>
+      </div>
+    </div>
 
-    <!-- 1. حصص اليوم -->
-    <section id="section-today" class="tab-content">
-      <div class="bg-gradient-to-l from-indigo-600 to-indigo-800 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100 mb-8 relative overflow-hidden">
-        <div class="relative z-10 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <div>
-            <span class="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold mb-2">جدول الحصص المباشر</span>
-            <h2 class="text-2xl font-black">حصص اليوم (<span id="currentDayText">اليوم</span>)</h2>
-            <p class="text-indigo-100 text-sm mt-1">تأكد من قاعتك وميعاد حصتك بدقة.</p>
+    <!-- بطاقة تفعيل الإشعارات والتسجيل -->
+    <section class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
           </div>
-          <button onclick="switchTab('register')" class="self-start sm:self-auto bg-white text-indigo-700 hover:bg-slate-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition">
-            احجز مكانك الآن
-          </button>
+          <div>
+            <h2 class="font-bold text-sm text-slate-900">تسجيل بيانات الطالب والتنبيهات 🔔</h2>
+            <p class="text-xs text-slate-500">سجل بياناتك ومرحلتك لتصلك رسائل الحصص والإنذارات</p>
+          </div>
         </div>
+        <span id="notifBadge" class="bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-full">
+          التنبيهات مغلقة
+        </span>
       </div>
-      <div id="todayList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </section>
 
-    <!-- 2. المعلمين -->
-    <section id="section-teachers" class="tab-content hidden">
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-black text-slate-900">نخبة معلمي السنتر</h2>
-        <p class="text-slate-500 text-sm mt-1">أفضل الأساتذة المتخصصين لمختلف المراحل الدراسية</p>
-      </div>
-      <div id="teachersList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </section>
-
-    <!-- 3. الجداول والأسعار -->
-    <section id="section-schedules" class="tab-content hidden">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
         <div>
-          <h2 class="text-2xl font-black text-slate-900">مواعيد الحصص والأسعار</h2>
-          <p class="text-slate-500 text-sm">استعرض المواعيد والأسعار لكل صف دراسي</p>
+          <label class="block font-bold text-slate-700 mb-1">اسم الطالب رباعي *</label>
+          <input type="text" id="stdName" placeholder="مثال: أحمد محمد علي" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs font-bold text-slate-500">تصفية حسب الصف:</label>
-          <select id="gradeFilter" onchange="filterSchedules()" class="bg-white border border-slate-300 text-slate-800 text-sm font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-600">
-            <option value="ALL">جميع المراحل</option>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">رقم هاتف الطالب *</label>
+          <input type="tel" id="stdPhone" placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">رقم هاتف ولي الأمر *</label>
+          <input type="tel" id="stdParentPhone" placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">المرحلة الدراسية *</label>
+          <select id="stdGrade" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">اختر المرحلة الدراسية</option>
+            <option value="الأول الثانوي">الأول الثانوي</option>
+            <option value="الثاني الثانوي">الثاني الثانوي</option>
+            <option value="الثالث الثانوي">الثالث الثانوي</option>
+            <option value="الثالث الإعدادي">الثالث الإعدادي</option>
           </select>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full text-right text-sm">
-          <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-            <tr>
-              <th class="p-4">الصف</th>
-              <th class="p-4">المادة</th>
-              <th class="p-4">المعلم</th>
-              <th class="p-4">اليوم</th>
-              <th class="p-4">الوقت</th>
-              <th class="p-4">القاعة</th>
-              <th class="p-4">السعر</th>
-            </tr>
-          </thead>
-          <tbody id="schedulesTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
-        </table>
+      <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+        <button id="btnEnableNotifications" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm">
+          <i data-lucide="bell" class="w-4 h-4"></i>
+          <span>1. تفعيل الإشعارات أولاً</span>
+        </button>
+        <button id="btnRegisterStudent" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>2. حفظ البيانات والاشتراك</span>
+        </button>
+      </div>
+      <p id="regStatusMsg" class="text-xs font-semibold text-center hidden"></p>
+    </section>
+
+    <!-- جدول حصص اليوم التلقائي -->
+    <section class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-sm text-slate-900">جدول حصص اليوم (<span id="todayDayNameText">...</span>)</h2>
+            <p class="text-xs text-slate-500">المواعيد المباشرة المبرمجة بالسنتر لهذا اليوم</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="todayClassesContainer" class="space-y-2.5">
+        <div class="text-center py-6 text-slate-400 text-xs">جاري تحميل المواعيد...</div>
       </div>
     </section>
 
-    <!-- 4. العروض -->
-    <section id="section-offers" class="tab-content hidden">
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-black text-slate-900">عروض وخصومات السنتر</h2>
-        <p class="text-slate-500 text-sm mt-1">باقات وتخفيضات خاصة للطلاب وأولياء الأمور</p>
+    <!-- قائمة مدرسي السنتر -->
+    <section class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <i data-lucide="users" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h2 class="font-bold text-sm text-slate-900">معلمو السنتر التعليمي</h2>
+          <p class="text-xs text-slate-500">نخبة المدرسين وموادهم المقررة</p>
+        </div>
       </div>
-      <div id="offersList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </section>
 
-    <!-- 5. تسجيل طالب مع تفعيل الإشعارات -->
-    <section id="section-register" class="tab-content hidden">
-      <div class="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm">
-        <div class="text-center mb-6">
-          <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="user-check" class="w-6 h-6"></i>
-          </div>
-          <h2 class="text-2xl font-black text-slate-900">تسجيل بيانات الطالب</h2>
-          <p class="text-slate-500 text-xs mt-1">سجل لتصلك إشعارات وتنبيهات الحصص اليومية على هاتفك</p>
-        </div>
-
-        <div id="notifyBox" class="p-4 rounded-2xl bg-amber-50 border border-amber-200 mb-5 text-center">
-          <p class="text-xs font-bold text-amber-900 mb-2">خطوة أساسية: يرجى تفعيل الإشعارات أولاً لتأكيد الحجز.</p>
-          <button type="button" id="btnRequestPermission" onclick="requestNotificationPermission()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition shadow flex items-center justify-center gap-2 mx-auto">
-            <i data-lucide="bell-ring" class="w-4 h-4"></i>
-            <span>اضغط هنا لتفعيل إشعارات الهاتف</span>
-          </button>
-        </div>
-
-        <form id="studentRegisterForm" onsubmit="handleStudentRegister(event)" class="space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">اسم الطالب رباعي *</label>
-            <input type="text" id="regName" required placeholder="مثال: عمر أحمد حسن" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">رقم هاتف الطالب *</label>
-            <input type="tel" id="regPhone" required placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">رقم هاتف ولي الأمر *</label>
-            <input type="tel" id="regParentPhone" required placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">الصف الدراسي *</label>
-            <input type="text" id="regGrade" required placeholder="مثال: الثالث الثانوي" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-
-          <button type="submit" id="regSubmitBtn" disabled class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl transition shadow-md text-sm opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
-            <span>تأكيد التسجيل والاشتراك</span>
-            <i data-lucide="send" class="w-4 h-4"></i>
-          </button>
-        </form>
-        <div id="regMessage" class="hidden mt-4 p-3 rounded-xl text-xs font-bold text-center"></div>
+      <div id="teachersContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="text-center py-6 text-slate-400 text-xs col-span-2">جاري تحميل المعلمين...</div>
       </div>
     </section>
 
-    <!-- 6. لوحة تحكم الأدمن -->
-    <section id="section-admin" class="tab-content hidden">
-      <div class="max-w-xl mx-auto bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-        <h2 class="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
-          <i data-lucide="shield-check" class="w-5 h-5 text-indigo-600"></i>
-          <span>لوحة إدارة السنتر</span>
-        </h2>
-
-        <div id="adminLoginBox" class="space-y-3">
-          <p class="text-xs text-slate-500 font-semibold">أدخل الرمز السري:</p>
-          <input type="password" id="adminPinInput" placeholder="الرمز السري الافتراضي 123456" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none">
-          <button onclick="checkAdminPin()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-sm">دخول</button>
+    <!-- ==================== لوحة تحكم الإدارة (مخفية برمز سري) ==================== -->
+    <section id="adminSection" class="hidden bg-slate-900 text-white rounded-3xl p-6 shadow-2xl space-y-6 border border-slate-800">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">لوحة تحكم السنتر الإدارية</h3>
+            <p class="text-xs text-slate-400">بث الإشعارات، الحصص، والمعلمين</p>
+          </div>
         </div>
+        <button onclick="document.getElementById('adminSection').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">إغلاق ✕</button>
+      </div>
 
-        <div id="adminControls" class="hidden space-y-6">
-          
-          <!-- صندوق استهداف مرحلة معينة بالإشعار -->
-          <div class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-5 shadow-sm">
-            <div class="flex items-center gap-2 mb-2 text-indigo-950 font-black text-sm">
-              <i data-lucide="megaphone" class="w-4 h-4 text-indigo-600"></i>
-              <span>بث إشعار فوري لمرحلة دراسية معينة</span>
-            </div>
-            <p class="text-[11px] text-indigo-800 mb-3">سيصل التنبيه لهواتف جميع الطلاب المشتركين في هذه المرحلة في نفس اللحظة.</p>
-
-            <div class="space-y-2.5 text-xs">
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">المرحلة المستهدفة:</label>
-                <select id="targetGradeSelect" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 outline-none focus:border-indigo-600">
-                  <option value="">-- اختر المرحلة --</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">عنوان الإشعار:</label>
-                <input type="text" id="gradeNoticeTitle" placeholder="مثال: تعديل موعد حصة الفيزياء" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600">
-              </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">تفاصيل الرسالة:</label>
-                <textarea id="gradeNoticeBody" rows="2" placeholder="اكتب نص الإشعار هنا بدقة..." class="w-full bg-white border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600"></textarea>
-              </div>
-
-              <button type="button" id="btnSendGradeNotice" onclick="submitGradeNotification()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl transition shadow flex items-center justify-center gap-2">
-                <i data-lucide="send" class="w-4 h-4"></i>
-                <span>إرسال التنبيه الآن</span>
-              </button>
-            </div>
+      <!-- قسم بث الإشعارات المباشر -->
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 space-y-3">
+        <h4 class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>بث إشعار فوري لمرحلة دراسية معينة (HTTP v1)</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">المرحلة المستهدفة:</label>
+            <select id="targetGradePush" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+              <option value="ALL">جميع الطلاب المسجلين بالسنتر</option>
+              <option value="الأول الثانوي">الأول الثانوي</option>
+              <option value="الثاني الثانوي">الثاني الثانوي</option>
+              <option value="الثالث الثانوي">الثالث الثانوي</option>
+              <option value="الثالث الإعدادي">الثالث الإعدادي</option>
+            </select>
           </div>
-
-          <!-- إضافة معلم -->
-          <div class="border-t border-slate-100 pt-4">
-            <h3 class="text-sm font-black text-slate-800 mb-2">➕ إضافة معلم جديد</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <input type="text" id="newTeacherName" placeholder="اسم المعلم" class="p-2 border rounded-lg">
-              <input type="text" id="newTeacherSubject" placeholder="المادة" class="p-2 border rounded-lg">
-              <input type="text" id="newTeacherPhone" placeholder="الهاتف" class="p-2 border rounded-lg">
-              <input type="text" id="newTeacherBio" placeholder="نبذة تعريفية" class="p-2 border rounded-lg">
-            </div>
-            <button onclick="submitNewTeacher()" class="mt-2 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg">حفظ المعلم</button>
+          <div>
+            <label class="block text-slate-400 mb-1">عنوان الإشعار:</label>
+            <input type="text" id="pushTitle" placeholder="مثال: تنبيه عاجل 📢" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
           </div>
-
-          <!-- إضافة حصة -->
-          <div class="border-t border-slate-100 pt-4">
-            <h3 class="text-sm font-black text-slate-800 mb-2">➕ إضافة حصة في الجدول</h3>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <input type="text" id="newSchGrade" placeholder="الصف" class="p-2 border rounded-lg">
-              <input type="text" id="newSchSubject" placeholder="المادة" class="p-2 border rounded-lg">
-              <input type="text" id="newSchTeacher" placeholder="اسم المعلم" class="p-2 border rounded-lg">
-              <input type="text" id="newSchDay" placeholder="اليوم" class="p-2 border rounded-lg">
-              <input type="text" id="newSchFrom" placeholder="من (مثال: 04:00 م)" class="p-2 border rounded-lg">
-              <input type="text" id="newSchTo" placeholder="إلى" class="p-2 border rounded-lg">
-              <input type="text" id="newSchRoom" placeholder="القاعة" class="p-2 border rounded-lg">
-              <input type="text" id="newSchPrice" placeholder="السعر" class="p-2 border rounded-lg">
-            </div>
-            <button onclick="submitNewSchedule()" class="mt-2 bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg">إضافة الحصة</button>
+          <div class="sm:col-span-2">
+            <label class="block text-slate-400 mb-1">نص رسالة الإشعار:</label>
+            <textarea id="pushBody" rows="2" placeholder="اكتب نص الرسالة التي ستصل على هواتف الطلاب..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
           </div>
-
         </div>
+        <button id="btnSendGradePush" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+          <i data-lucide="radio" class="w-4 h-4"></i>
+          <span>إرسال التنبيه الآن لجميع الهواتف</span>
+        </button>
+        <p id="pushFeedback" class="text-xs text-center font-bold hidden"></p>
+      </div>
+
+      <!-- قسم إضافة معلم جديد -->
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 space-y-3">
+        <h4 class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span>إضافة معلم جديد</span>
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <input type="text" id="newTeacherName" placeholder="اسم المدرس" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <input type="text" id="newTeacherSubject" placeholder="المادة الدراسية" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <input type="tel" id="newTeacherPhone" placeholder="رقم الهاتف" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <input type="text" id="newTeacherBio" placeholder="نبذة مختصرة" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+        </div>
+        <button id="btnAddTeacher" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-xl text-xs transition">
+          حفظ المدرس بالشيت
+        </button>
       </div>
     </section>
 
   </main>
 
-  <footer class="bg-white border-t border-slate-200 py-8 px-4 mt-12">
-    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-right">
-      <div>
-        <h4 id="footerBrand" class="font-black text-slate-900 text-sm">سنتر الأوائل التعليمي</h4>
-        <p id="centerAddress" class="text-xs text-slate-500 mt-1 flex items-center justify-center md:justify-start gap-1">
-          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600"></i>
-          <span>جاري تحميل العنوان...</span>
-        </p>
-      </div>
-      <a id="mapsUrlBtn" href="#" target="_blank" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl flex items-center gap-1.5 transition">
-        <i data-lucide="map" class="w-4 h-4 text-indigo-600"></i>
-        <span>موقع السنتر على الخريطة</span>
-      </a>
-    </div>
-  </footer>
+  <!-- ==================== كود الجافا سكريبت وتشغيل المنظومة ==================== -->
+  <script>
+    // 1. عنوان الـ Web App المنشور الخاص بك من Google Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_K_7hGvXn0zX8JdY-hU_WvWwT_example/exec"; // ضع رابط النشر الخاص بك هنا
+    const VAPID_KEY = "BFo413x-YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_SETTINGS"; // مفتاح الـ Web Push VAPID Key الخاص بك
 
-<script>
+    // 2. إعدادات Firebase الرسمية للمشروع
+    const firebaseConfig = {
+      apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
+      authDomain: "daftar-e3849.firebaseapp.com",
+      projectId: "daftar-e3849",
+      storageBucket: "daftar-e3849.firebasestorage.app",
+      messagingSenderId: "834645560398",
+      appId: "1:834645560398:web:d2195a9d9336255901071f"
+    };
 
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec";
+    firebase.initializeApp(firebaseConfig);
+    const messaging = ('Notification' in window) ? firebase.messaging() : null;
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
-    authDomain: "daftar-e3849.firebaseapp.com",
-    projectId: "daftar-e3849",
-    storageBucket: "daftar-e3849.firebasestorage.app",
-    messagingSenderId: "834645560398",
-    appId: "1:834645560398:web:d2195a9d9336255901071f"
-  };
+    let currentFcmToken = localStorage.getItem("center_fcm_token") || "";
 
-  const VAPID_KEY = "BNxEBbxdPRCvLuoG5SdnePlr1rOrA5l6q0edNqbvwxm0QWuyH0N05-OKfQtE0nVbHvpDoXXxYtfSco0KleOiv10";
-
-  firebase.initializeApp(firebaseConfig);
-  let messaging = null;
-  let studentFcmToken = "";
-  let appData = null;
-
-  // تسجيل Service Worker بمسار نسبي مباشر لـ GitHub Pages
-  let swRegistration = null;
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('firebase-messaging-sw.js')
-      .then(reg => {
-        swRegistration = reg;
-        console.log('SW Registered:', reg.scope);
-      })
-      .catch(err => console.error('SW Registration Error:', err));
-  }
-
-  window.addEventListener("DOMContentLoaded", () => {
-    if (window.lucide) lucide.createIcons();
-    loadCenterData();
-  });
-
-  async function requestNotificationPermission() {
-    const btn = document.getElementById("btnRequestPermission");
-    btn.innerText = "جاري تفعيل الاتصال...";
-
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert("المتصفح الحالي لا يدعم ميزة الإشعارات في الخلفية.");
-      btn.innerText = "غير مدعوم في هذا المتصفح";
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        const registration = await navigator.serviceWorker.ready;
-        messaging = firebase.messaging();
-
-        studentFcmToken = await messaging.getToken({
-          vapidKey: VAPID_KEY,
-          serviceWorkerRegistration: registration
+    // 3. تسجيل الـ Service Worker إجبارياً لتفعيل معايير تثبيت التطبيق PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./firebase-messaging-sw.js')
+        .then((reg) => {
+          console.log("Service Worker جاهز ومعتمد:", reg.scope);
+        })
+        .catch((err) => {
+          console.warn("خطأ في تسجيل Service Worker:", err);
         });
-
-        console.log("FCM Token:", studentFcmToken);
-
-        const notifyBox = document.getElementById("notifyBox");
-        notifyBox.className = "p-4 rounded-2xl bg-emerald-50 border border-emerald-200 mb-5 text-center";
-        notifyBox.innerHTML = "<p class='text-xs font-bold text-emerald-800'>✅ تم تفعيل إشعارات هاتفك بنجاح!</p>";
-
-        const submitBtn = document.getElementById("regSubmitBtn");
-        submitBtn.disabled = false;
-        submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
-        submitBtn.classList.add("hover:bg-indigo-700");
-      } else {
-        alert("يجب الضغط على 'سماح / Allow' لتفعيل الإشعارات وتأكيد الحجز.");
-        btn.innerText = "إعادة محاولة التفعيل 🔔";
-      }
-    } catch (err) {
-      console.error("FCM Error:", err);
-      alert("حدث خطأ أثناء تفعيل الإشعار: " + err.message);
-      btn.innerText = "إعادة محاولة التفعيل 🔔";
-    }
-  }
-
-  function loadCenterData() {
-    fetch(`${SCRIPT_URL}?action=getData`)
-      .then(res => res.json())
-      .then(data => renderPage(data))
-      .catch(err => {
-        document.getElementById("loader").innerHTML = `<p class="text-red-500 font-bold text-sm">خطأ في مزامنة البيانات: ${err.message}</p>`;
-      });
-  }
-
-  function renderPage(data) {
-    appData = data;
-    document.getElementById("loader").classList.add("hidden");
-    document.getElementById("mainContainer").classList.remove("hidden");
-
-    if (data.centerInfo) {
-      document.getElementById("brandName").innerText = data.centerInfo.center_name || "السنتر التعليمي";
-      document.getElementById("footerBrand").innerText = data.centerInfo.center_name || "السنتر التعليمي";
-      document.getElementById("announcementText").innerText = data.centerInfo.announcement || "";
-      document.getElementById("centerAddress").innerHTML = `<i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 inline"></i> ${data.centerInfo.address || ""}`;
-      document.getElementById("phoneCallBtn").href = `tel:${data.centerInfo.contact_phone || ""}`;
-      document.getElementById("mapsUrlBtn").href = data.centerInfo.google_maps_url || "#";
     }
 
-    document.getElementById("currentDayText").innerText = data.todayName || "اليوم";
-    const todayContainer = document.getElementById("todayList");
-    todayContainer.innerHTML = "";
-    if (!data.todaySchedules || data.todaySchedules.length === 0) {
-      todayContainer.innerHTML = "<div class='col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 text-slate-500 font-bold text-sm'>لا توجد حصص مجدولة لليوم</div>";
-    } else {
-      data.todaySchedules.forEach(item => {
-        todayContainer.innerHTML += `
-          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-indigo-200 transition">
-            <div class="flex items-center justify-between mb-3">
-              <span class="bg-indigo-50 text-indigo-700 text-xs font-black px-2.5 py-1 rounded-lg">${item.grade}</span>
-              <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">${item.room}</span>
-            </div>
-            <h3 class="font-black text-slate-900 text-base">${item.subject}</h3>
-            <p class="text-xs font-semibold text-slate-600 mt-1">المعلم: ${item.teacher_name}</p>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-bold">
-              <span class="flex items-center gap-1 text-indigo-600"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${item.time_from} - ${item.time_to}</span>
-              <span>${item.price}</span>
-            </div>
-          </div>`;
-      });
+    // 4. منطق نافذة وتثبيت التطبيق الذكية على الهاتف
+    let deferredInstallPrompt = null;
+    const pwaBanner = document.getElementById("pwaBanner");
+    const btnInstallApp = document.getElementById("btnInstallApp");
+    const closePwaBanner = document.getElementById("closePwaBanner");
+    const manualInstallModal = document.getElementById("manualInstallModal");
+
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    // إظهار إشعار التثبيت الداخلي للطالب بعد ثانيتين إذا لم يكن قد ثبته بالفعل
+    if (!isInstalled) {
+      setTimeout(() => {
+        if (pwaBanner) pwaBanner.classList.remove("hidden");
+      }, 1500);
     }
 
-    const teachersContainer = document.getElementById("teachersList");
-    teachersContainer.innerHTML = "";
-    if (data.teachers) {
-      data.teachers.forEach(t => {
-        teachersContainer.innerHTML += `
-          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm text-center flex flex-col items-center">
-            <img src="${t.image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300'}" class="w-20 h-20 rounded-full object-cover border-2 border-indigo-100 mb-3 shadow-inner">
-            <h3 class="font-extrabold text-slate-900">${t.name}</h3>
-            <p class="text-xs font-bold text-indigo-600 mt-0.5">${t.subject}</p>
-            <p class="text-xs text-slate-500 mt-2 line-clamp-2">${t.bio || ""}</p>
-          </div>`;
-      });
-    }
-
-    const gradeFilter = document.getElementById("gradeFilter");
-    const uniqueGrades = [...new Set(data.schedules.map(s => s.grade))];
-    gradeFilter.innerHTML = `<option value="ALL">جميع المراحل (${data.schedules ? data.schedules.length : 0})</option>`;
-    uniqueGrades.forEach(g => {
-      if (g) gradeFilter.innerHTML += `<option value="${g}">${g}</option>`;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (pwaBanner) pwaBanner.classList.remove("hidden");
     });
-    filterSchedules();
 
-    const offersContainer = document.getElementById("offersList");
-    offersContainer.innerHTML = "";
-    if (!data.offers || data.offers.length === 0) {
-      offersContainer.innerHTML = "<p class='text-center col-span-full text-slate-400 text-xs'>لا توجد عروض ترويجية نشطة حالياً</p>";
-    } else {
-      data.offers.forEach(o => {
-        offersContainer.innerHTML += `
-          <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
-            <span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md">${o.badge || "عرض خاص"}</span>
-            <h3 class="font-extrabold text-slate-900 text-base mt-2">${o.title}</h3>
-            <p class="text-xs text-slate-600 mt-1">${o.description}</p>
-          </div>`;
-      });
-    }
-
-    if (window.lucide) lucide.createIcons();
-  }
-
-  function filterSchedules() {
-    const selected = document.getElementById("gradeFilter").value;
-    const tbody = document.getElementById("schedulesTableBody");
-    tbody.innerHTML = "";
-
-    if (!appData || !appData.schedules) return;
-
-    const filtered = (selected === "ALL")
-      ? appData.schedules
-      : appData.schedules.filter(s => s.grade === selected);
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='7' class='text-center p-6 text-slate-400'>لا توجد حصص مسجلة لهذا الصف</td></tr>";
-      return;
-    }
-
-    filtered.forEach(s => {
-      tbody.innerHTML += `
-        <tr class="hover:bg-slate-50 transition">
-          <td class="p-4 font-bold text-slate-900">${s.grade}</td>
-          <td class="p-4 text-indigo-700 font-semibold">${s.subject}</td>
-          <td class="p-4">${s.teacher_name}</td>
-          <td class="p-4">${s.day}</td>
-          <td class="p-4 text-xs font-bold text-slate-600">${s.time_from} - ${s.time_to}</td>
-          <td class="p-4 text-xs text-slate-500">${s.room}</td>
-          <td class="p-4 font-bold text-emerald-600">${s.price}</td>
-        </tr>`;
-    });
-  }
-
-  function switchTab(tabId) {
-    document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-    document.getElementById("section-" + tabId).classList.remove("hidden");
-
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.classList.remove("bg-white", "text-indigo-600", "shadow-sm");
-      btn.classList.add("text-slate-600");
-    });
-    const activeDesktop = document.getElementById("tab-" + tabId);
-    if (activeDesktop) {
-      activeDesktop.classList.add("bg-white", "text-indigo-600", "shadow-sm");
-      activeDesktop.classList.remove("text-slate-600");
-    }
-
-    document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
-      btn.classList.remove("text-indigo-600");
-      btn.classList.add("text-slate-500");
-      if (btn.getAttribute("data-target") === tabId) {
-        btn.classList.add("text-indigo-600");
-        btn.classList.remove("text-slate-500");
-      }
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function handleStudentRegister(e) {
-    e.preventDefault();
-    const btn = document.getElementById("regSubmitBtn");
-    const msg = document.getElementById("regMessage");
-
-    btn.disabled = true;
-    btn.innerText = "جاري الحفظ...";
-
-    const payload = {
-      action: "registerStudent",
-      name: document.getElementById("regName").value,
-      phone: document.getElementById("regPhone").value,
-      parentPhone: document.getElementById("regParentPhone").value,
-      grade: document.getElementById("regGrade").value,
-      fcmToken: studentFcmToken
-    };
-
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.text())
-    .then(text => {
-      btn.disabled = false;
-      btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
-      try {
-        const res = JSON.parse(text);
-        msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center " + (res.success ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700");
-        msg.innerText = res.message;
-        if (res.success) document.getElementById("studentRegisterForm").reset();
-      } catch(e) {
-        msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center bg-emerald-50 text-emerald-700";
-        msg.innerText = "تم حفظ بياناتك بنجاح! 🔔";
-        document.getElementById("studentRegisterForm").reset();
-      }
-    })
-    .catch(err => {
-      btn.disabled = false;
-      btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
-      msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center bg-red-50 text-red-700";
-      msg.innerText = "حدث خطأ أثناء الاتصال: " + err.message;
-    });
-  }
-
-  function checkAdminPin() {
-    const pin = document.getElementById("adminPinInput").value;
-    if (pin === "123456") {
-      document.getElementById("adminLoginBox").classList.add("hidden");
-      document.getElementById("adminControls").classList.remove("hidden");
-      populateTargetGradesDropdown();
-      if (window.lucide) lucide.createIcons();
-    } else {
-      alert("رمز المرور غير صحيح");
-    }
-  }
-
-  function populateTargetGradesDropdown() {
-    const select = document.getElementById("targetGradeSelect");
-    if (!select || !appData || !appData.schedules) return;
-
-    const uniqueGrades = [...new Set(appData.schedules.map(s => s.grade))];
-    select.innerHTML = `<option value="ALL">📢 جميع المراحل (إرسال عام لكل طلاب السنتر)</option>`;
-    uniqueGrades.forEach(g => {
-      if (g) select.innerHTML += `<option value="${g}">${g}</option>`;
-    });
-  }
-
-  function submitGradeNotification() {
-    const pin = document.getElementById("adminPinInput").value;
-    const targetGrade = document.getElementById("targetGradeSelect").value;
-    const title = document.getElementById("gradeNoticeTitle").value.trim();
-    const body = document.getElementById("gradeNoticeBody").value.trim();
-
-    if (!targetGrade) return alert("اختر المرحلة المستهدفة أولاً!");
-    if (!body) return alert("اكتب نص الرسالة أولاً!");
-
-    const confirmText = targetGrade === "ALL" 
-      ? "هل أنت متأكد من إرسال الإشعار لجميع طلاب السنتر؟" 
-      : `هل أنت متأكد من إرسال الإشعار لطلاب مرحلة (${targetGrade}) فقط؟`;
-
-    if (!confirm(confirmText)) return;
-
-    const btn = document.getElementById("btnSendGradeNotice");
-    btn.disabled = true;
-    btn.innerText = "جاري بث الإشعارات...";
-
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "sendGradeNotification",
-        pin: pin,
-        targetGrade: targetGrade,
-        title: title || "تنبيه هام من السنتر 📢",
-        body: body
-      })
-    })
-    .then(res => res.text())
-    .then(text => {
-      btn.disabled = false;
-      btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
-      try {
-        const res = JSON.parse(text);
-        alert(res.message);
-        if (res.success) {
-          document.getElementById("gradeNoticeTitle").value = "";
-          document.getElementById("gradeNoticeBody").value = "";
+    if (btnInstallApp) {
+      btnInstallApp.addEventListener("click", async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === "accepted") {
+            pwaBanner.classList.add("hidden");
+          }
+          deferredInstallPrompt = null;
+        } else {
+          // فتح نافذة الإرشاد بالصور والتوجيه
+          manualInstallModal.classList.remove("hidden");
         }
-      } catch(e) {
-        alert("تم إرسال الطلب بنجاح.");
+      });
+    }
+
+    if (closePwaBanner) {
+      closePwaBanner.addEventListener("click", () => {
+        pwaBanner.classList.add("hidden");
+      });
+    }
+
+    // 5. التحقق وتحديث شارة الإشعارات
+    function updateNotifBadge() {
+      const badge = document.getElementById("notifBadge");
+      if (!('Notification' in window)) {
+        badge.innerText = "غير مدعوم";
+        return;
       }
-    })
-    .catch(err => {
-      btn.disabled = false;
-      btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
-      alert("حدث خطأ أثناء الإرسال: " + err.message);
+      if (Notification.permission === "granted" && currentFcmToken) {
+        badge.innerText = "التنبيهات مفعلة ✓";
+        badge.className = "bg-emerald-50 text-emerald-600 border border-emerald-100 text-[11px] font-bold px-2.5 py-1 rounded-full";
+      } else {
+        badge.innerText = "التنبيهات مغلقة";
+        badge.className = "bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-full";
+      }
+    }
+    updateNotifBadge();
+
+    // 6. طلب إذن الإشعارات وجلب الـ Token
+    document.getElementById("btnEnableNotifications").addEventListener("click", async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+          currentFcmToken = token;
+          localStorage.setItem("center_fcm_token", token);
+          updateNotifBadge();
+          alert("تم تفعيل الإشعارات بنجاح على هاتفك! 🔔 برجاء إكمال تسجيل بياناتك بالأسفل.");
+        } else {
+          alert("تم رفض إذن الإشعارات من إعدادات المتصفح.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("خطأ في جلب التوكن: " + err.message);
+      }
     });
-  }
 
-  function submitNewTeacher() {
-    const pin = document.getElementById("adminPinInput").value;
-    const tData = {
-      action: "addTeacher",
-      pin: pin,
-      name: document.getElementById("newTeacherName").value,
-      subject: document.getElementById("newTeacherSubject").value,
-      phone: document.getElementById("newTeacherPhone").value,
-      bio: document.getElementById("newTeacherBio").value
-    };
-    if (!tData.name) return alert("اكتب اسم المعلم");
+    // 7. تسجيل الطالب وإرسال البيانات للـ Sheet
+    document.getElementById("btnRegisterStudent").addEventListener("click", async () => {
+      const name = document.getElementById("stdName").value.trim();
+      const phone = document.getElementById("stdPhone").value.trim();
+      const parentPhone = document.getElementById("stdParentPhone").value.trim();
+      const grade = document.getElementById("stdGrade").value;
+      const statusMsg = document.getElementById("regStatusMsg");
 
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(tData)
-    })
-    .then(res => res.text())
-    .then(() => {
-      alert("تم حفظ المعلم بنجاح!");
-      location.reload();
+      if (!name || !phone || !parentPhone || !grade) {
+        alert("يرجى ملء كافة البيانات المطلوبة لاكتمال التسجيل!");
+        return;
+      }
+
+      statusMsg.innerText = "جاري حفظ البيانات في قاعدة بيانات السنتر...";
+      statusMsg.className = "text-xs font-semibold text-center text-indigo-600 block";
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "registerStudent",
+            name: name,
+            phone: phone,
+            parentPhone: parentPhone,
+            grade: grade,
+            fcmToken: currentFcmToken
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          statusMsg.innerText = "✓ تم تسجيل بياناتك وتفعيل تنبيهات السنتر بنجاح!";
+          statusMsg.className = "text-xs font-semibold text-center text-emerald-600 block";
+        } else {
+          statusMsg.innerText = "حدث خطأ: " + result.message;
+          statusMsg.className = "text-xs font-semibold text-center text-rose-600 block";
+        }
+      } catch (err) {
+        statusMsg.innerText = "تعذر الاتصال بالسيرفر، تأكد من الاتصال بالإنترنت.";
+        statusMsg.className = "text-xs font-semibold text-center text-rose-600 block";
+      }
     });
-  }
 
-  function submitNewSchedule() {
-    const pin = document.getElementById("adminPinInput").value;
-    const sData = {
-      action: "addSchedule",
-      pin: pin,
-      grade: document.getElementById("newSchGrade").value,
-      subject: document.getElementById("newSchSubject").value,
-      teacherName: document.getElementById("newSchTeacher").value,
-      day: document.getElementById("newSchDay").value,
-      timeFrom: document.getElementById("newSchFrom").value,
-      timeTo: document.getElementById("newSchTo").value,
-      room: document.getElementById("newSchRoom").value,
-      price: document.getElementById("newSchPrice").value
-    };
+    // 8. جلب بيانات السنتر والمواعيد الحية من الـ Sheet
+    async function loadCenterData() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
 
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(sData)
-    })
-    .then(res => res.text())
-    .then(() => {
-      alert("تمت إضافة الحصة بنجاح!");
-      location.reload();
+        // تحديث اسم السنتر والإعلان
+        if (data.centerInfo) {
+          document.getElementById("centerNameTitle").innerText = data.centerInfo.center_name || "السنتر التعليمي";
+          if (data.centerInfo.announcement) {
+            document.getElementById("announcementText").innerText = data.centerInfo.announcement;
+          }
+        }
+
+        // تحديث اسم اليوم
+        document.getElementById("todayDayNameText").innerText = data.todayName || "اليوم";
+
+        // عرض حصص اليوم
+        const classesBox = document.getElementById("todayClassesContainer");
+        if (!data.todaySchedules || data.todaySchedules.length === 0) {
+          classesBox.innerHTML = '<div class="text-center py-5 text-slate-400 text-xs">لا توجد حصص مبرمجة لليوم.</div>';
+        } else {
+          classesBox.innerHTML = data.todaySchedules.map(c => `
+            <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[10px] mb-1">${c.grade}</span>
+                <h4 class="font-bold text-xs text-slate-800">${c.subject} - ${c.teacher_name}</h4>
+                <p class="text-[11px] text-slate-500 mt-0.5">قاعة: ${c.room || 'الرئيسية'} | السعر: ${c.price || 'محدد'}</p>
+              </div>
+              <div class="text-left font-bold text-xs text-indigo-600 dir-ltr">
+                ${c.time_from} - ${c.time_to}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // عرض المعلمين
+        const teachersBox = document.getElementById("teachersContainer");
+        if (!data.teachers || data.teachers.length === 0) {
+          teachersBox.innerHTML = '<div class="text-center py-5 text-slate-400 text-xs col-span-2">لا يوجد معلمون مسجلون حالياً.</div>';
+        } else {
+          teachersBox.innerHTML = data.teachers.map(t => `
+            <div class="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center gap-3">
+              <img src="${t.imageUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150'}" class="w-12 h-12 rounded-xl object-cover border border-slate-200">
+              <div>
+                <h4 class="font-bold text-xs text-slate-800">${t.name}</h4>
+                <p class="text-[11px] text-indigo-600 font-medium">${t.subject}</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">${t.bio || ''}</p>
+              </div>
+            </div>
+          `).join('');
+        }
+
+      } catch (err) {
+        console.warn("جاري استخدام البيانات المحلية المؤقتة:", err);
+      }
+    }
+    loadCenterData();
+
+    // 9. لوحة الأدمن وبث الإشعارات
+    document.getElementById("toggleAdminBtn").addEventListener("click", () => {
+      const pin = prompt("أدخل رمز PIN السري للأدمن:");
+      if (pin === "123456") {
+        document.getElementById("adminSection").classList.remove("hidden");
+        window.scrollTo({ top: document.getElementById("adminSection").offsetTop, behavior: 'smooth' });
+      } else if (pin !== null) {
+        alert("رمز PIN غير صحيح!");
+      }
     });
-  }
-</script>
+
+    document.getElementById("btnSendGradePush").addEventListener("click", async () => {
+      const grade = document.getElementById("targetGradePush").value;
+      const title = document.getElementById("pushTitle").value.trim();
+      const body = document.getElementById("pushBody").value.trim();
+      const feedback = document.getElementById("pushFeedback");
+
+      if (!title || !body) {
+        alert("يرجى كتابة عنوان الإشعار ونصه!");
+        return;
+      }
+
+      feedback.innerText = "جاري بث الإشعار لهواتف الطلاب...";
+      feedback.className = "text-xs text-center font-bold text-indigo-400 block";
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "sendGradeNotification",
+            pin: "123456",
+            targetGrade: grade,
+            title: title,
+            body: body
+          })
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          feedback.innerText = "✓ " + resData.message;
+          feedback.className = "text-xs text-center font-bold text-emerald-400 block";
+        } else {
+          feedback.innerText = "حدث خطأ: " + resData.message;
+          feedback.className = "text-xs text-center font-bold text-rose-400 block";
+        }
+      } catch (err) {
+        feedback.innerText = "فشل في إرسال الإشعار للسيرفر.";
+        feedback.className = "text-xs text-center font-bold text-rose-400 block";
+      }
+    });
+
+    // تشغيل أيقونات Lucide
+    lucide.createIcons();
+  </script>
 </body>
 </html>
