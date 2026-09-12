@@ -152,12 +152,13 @@
   </main>
 
   <script>
-    // 1. رابط الـ Web App الخاص بك المنشور من Apps Script
+    // 1. رابط الـ Web App المنشور من Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjY1zI5R0L-aF7Bw7UuR8c_test/exec"; 
     
-    // مفتاح VAPID العام من إعدادات Firebase Cloud Messaging
+    // مفتاح VAPID العام من Firebase Console
     const VAPID_KEY = "BDyC6b7rYwQ_YOUR_FIREBASE_KEY";
 
+    // 2. إعدادات Firebase الخاصة بمشروع daftar-e3849
     const firebaseConfig = {
       apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
       authDomain: "daftar-e3849.firebaseapp.com",
@@ -171,18 +172,19 @@
     const messaging = ('Notification' in window) ? firebase.messaging() : null;
     let currentFcmToken = localStorage.getItem("center_fcm_token") || "";
 
-    // حساب المسار الدقيق الكامل للـ Service Worker داخل المستودع لتفادي خطأ 404
-    const swPath = new URL('./firebase-messaging-sw.js', window.location.href).href;
+    // 3. تثبيت المسار المطلق لمستودع daftar لمنع أخطاء الـ 404
+    const SW_URL = 'https://mahmoud2737.github.io/daftar/firebase-messaging-sw.js';
+    const SW_SCOPE = '/daftar/';
     let swRegistration = null;
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register(swPath)
-        .then((registration) => {
-          swRegistration = registration;
-          console.log("تم تسجيل الـ Service Worker بنجاح بالمسار الكامل:", registration.scope);
+      navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE })
+        .then((reg) => {
+          swRegistration = reg;
+          console.log("تم تسجيل الـ Service Worker بنجاح في نطاق:", reg.scope);
         })
         .catch((err) => {
-          console.warn("خطأ في تسجيل Service Worker:", err);
+          console.error("فشل تسجيل Service Worker:", err);
         });
     }
 
@@ -202,7 +204,7 @@
     }
     updateNotifBadge();
 
-    // تفعيل الإشعارات وتمرير swRegistration إجبارياً
+    // 4. تفعيل الإشعارات وتمرير swRegistration مباشرة لـ Firebase
     document.getElementById("btnEnableNotifications").addEventListener("click", async () => {
       try {
         const permission = await Notification.requestPermission();
@@ -230,7 +232,7 @@
       }
     });
 
-    // دالة الإرسال المتوافقة مع Apps Script لمنع مشاكل CORS
+    // 5. دالة الإرسال المتوافقة مع Apps Script لتفادي مشاكل الـ CORS
     async function sendToAppsScript(payload) {
       const response = await fetch(SCRIPT_URL, {
         method: "POST",
