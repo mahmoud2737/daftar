@@ -298,6 +298,17 @@
   </footer>
 
 <script>
+  // تسجيل الـ Service Worker إجبارياً لتفعيل ميزة PWA والتثبيت
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+    .then((reg) => {
+      console.log('Service Worker مسجل بنجاح للتطبيق:', reg.scope);
+    })
+    .catch((err) => {
+      console.error('فشل تسجيل Service Worker:', err);
+    });
+}
+  
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec";
 
   const firebaseConfig = {
