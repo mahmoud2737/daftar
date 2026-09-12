@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
@@ -12,18 +12,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage(function(payload) {
-  const notificationTitle = payload.notification.title || "تنبيه من السنتر 📢";
+// استلام الإشعارات في الخلفية
+messaging.onBackgroundMessage((payload) => {
+  const notificationTitle = (payload.notification && payload.notification.title) || 'تنبيه من السنتر 📢';
   const notificationOptions = {
-    body: payload.notification.body || "",
-    icon: payload.notification.icon || "https://cdn-icons-png.flaticon.com/512/2997/2997322.png",
-    badge: "https://cdn-icons-png.flaticon.com/512/2997/2997322.png"
+    body: (payload.notification && payload.notification.body) || '',
+    icon: 'https://cdn-icons-png.flaticon.com/512/2997/2997322.png',
+    badge: 'https://cdn-icons-png.flaticon.com/512/2997/2997322.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// الشروط الإلزامية لكي يقبل المتصفح تثبيت الموقع كتطبيق PWA
+// تفعيل PWA بدون إفساد استجابات الشبكة
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -33,6 +34,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // تمرير الطلبات بشكل طبيعي لإرضاء معايير PWA في أندرويد
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    })
+  );
 });
