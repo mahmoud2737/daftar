@@ -1,32 +1,362 @@
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة السنتر التعليمي</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
 
-firebase.initializeApp({
-  apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
-  authDomain: "daftar-e3849.firebaseapp.com",
-  projectId: "daftar-e3849",
-  storageBucket: "daftar-e3849.firebasestorage.app",
-  messagingSenderId: "834645560398",
-  appId: "1:834645560398:web:d2195a9d9336255901071f"
-});
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-const messaging = firebase.messaging();
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
-messaging.onBackgroundMessage(function(payload) {
-  const notificationTitle = (payload.notification && payload.notification.title) || 'تنبيه من السنتر 📢';
-  const notificationOptions = {
-    body: (payload.notification && payload.notification.body) || '',
-    icon: 'https://cdn-icons-png.flaticon.com/512/2997/2997322.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/2997/2997322.png'
-  };
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-20 select-none">
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
+  <!-- رأس الصفحة -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md">
+          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 id="centerNameTitle" class="font-black text-slate-900 text-base leading-tight">السنتر التعليمي</h1>
+          <p class="text-xs text-slate-500 font-medium">لوحة المتابعة والتنبيهات</p>
+        </div>
+      </div>
+      <button id="toggleAdminBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+        <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i>
+        <span>لوحة الأدمن</span>
+      </button>
+    </div>
+  </header>
 
-self.addEventListener('install', function(event) {
-  self.skipWaiting();
-});
+  <main class="max-w-4xl mx-auto px-4 py-5 space-y-5">
 
-self.addEventListener('activate', function(event) {
-  event.waitUntil(clients.claim());
-});
+    <!-- شريط الإعلان الترحيبي -->
+    <div class="bg-gradient-to-l from-indigo-600 to-indigo-700 text-white p-4 rounded-2xl shadow-md flex items-center gap-3">
+      <i data-lucide="bell-ring" class="w-6 h-6 text-indigo-200 shrink-0"></i>
+      <p id="announcementText" class="text-xs sm:text-sm font-semibold leading-relaxed">
+        أهلاً بكم في منصة السنتر! برجاء تفعيل التنبيهات وتسجيل البيانات لمتابعة الحصص أولاً بأول.
+      </p>
+    </div>
+
+    <!-- قسم التسجيل والإشعارات -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i>
+          <h2 class="font-bold text-sm text-slate-900">تسجيل بيانات الطالب والتنبيهات</h2>
+        </div>
+        <span id="notifBadge" class="bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-full">
+          التنبيهات مغلقة
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">اسم الطالب *</label>
+          <input type="text" id="stdName" placeholder="الاسم رباعي" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">رقم هاتف الطالب *</label>
+          <input type="tel" id="stdPhone" placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">رقم ولي الأمر *</label>
+          <input type="tel" id="stdParentPhone" placeholder="01xxxxxxxxx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">المرحلة الدراسية *</label>
+          <select id="stdGrade" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+            <option value="">اختر المرحلة</option>
+            <option value="الأول الثانوي">الأول الثانوي</option>
+            <option value="الثاني الثانوي">الثاني الثانوي</option>
+            <option value="الثالث الثانوي">الثالث الثانوي</option>
+            <option value="الثالث الإعدادي">الثالث الإعدادي</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+        <button id="btnEnableNotifications" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+          <i data-lucide="bell" class="w-4 h-4"></i>
+          <span>1. تفعيل الإشعارات أولاً</span>
+        </button>
+        <button id="btnRegisterStudent" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>2. حفظ البيانات والتسجيل</span>
+        </button>
+      </div>
+      <p id="regStatusMsg" class="text-xs font-semibold text-center hidden"></p>
+    </section>
+
+    <!-- جدول الحصص اليومي -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+      <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+        <i data-lucide="calendar" class="w-5 h-5 text-emerald-600"></i>
+        <h2 class="font-bold text-sm text-slate-900">حصص اليوم (<span id="todayDayNameText">...</span>)</h2>
+      </div>
+      <div id="todayClassesContainer" class="space-y-2">
+        <div class="text-center py-4 text-slate-400 text-xs">جاري تحميل الحصص...</div>
+      </div>
+    </section>
+
+    <!-- لوحة تحكم الأدمن -->
+    <section id="adminSection" class="hidden bg-slate-900 text-white rounded-3xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-sm text-white">لوحة بث الإشعارات المباشرة</h3>
+        </div>
+        <button onclick="document.getElementById('adminSection').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">إغلاق ✕</button>
+      </div>
+
+      <div class="bg-slate-800 p-4 rounded-2xl space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-300 mb-1">المرحلة المستهدفة:</label>
+            <select id="targetGradePush" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+              <option value="ALL">جميع المراحل المسجلة</option>
+              <option value="الأول الثانوي">الأول الثانوي</option>
+              <option value="الثاني الثانوي">الثاني الثانوي</option>
+              <option value="الثالث الثانوي">الثالث الثانوي</option>
+              <option value="الثالث الإعدادي">الثالث الإعدادي</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 mb-1">عنوان الإشعار:</label>
+            <input type="text" id="pushTitle" placeholder="مثال: تنبيه عاجل 📢" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-slate-300 mb-1">نص الرسالة:</label>
+            <textarea id="pushBody" rows="2" placeholder="اكتب نص الإشعار هنا..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
+          </div>
+        </div>
+        <button id="btnSendGradePush" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+          <i data-lucide="radio" class="w-4 h-4"></i>
+          <span>إرسال التنبيه الآن لهواتف الطلاب</span>
+        </button>
+        <p id="pushFeedback" class="text-xs text-center font-bold hidden"></p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. رابط الـ Web App الخاص بك المنشور من Apps Script
+    // استبدل هذا الرابط برابط النشر الخاص بك إذا قمت بنشر إصدار جديد
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjY1zI5R0L-aF7Bw7UuR8c_test/exec"; 
+    
+    // مفتاح VAPID العام من إعدادات Firebase Cloud Messaging
+    const VAPID_KEY = "BDyC6b7rYwQ_YOUR_FIREBASE_KEY";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
+      authDomain: "daftar-e3849.firebaseapp.com",
+      projectId: "daftar-e3849",
+      storageBucket: "daftar-e3849.firebasestorage.app",
+      messagingSenderId: "834645560398",
+      appId: "1:834645560398:web:d2195a9d9336255901071f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const messaging = ('Notification' in window) ? firebase.messaging() : null;
+    let currentFcmToken = localStorage.getItem("center_fcm_token") || "";
+
+    // متغير لتخزين تسجيل الـ Service Worker النسبي
+    let swRegistration = null;
+
+    // تسجيل الـ Service Worker باستخدام المسار النسبي داخل مستودع جيت هب
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./firebase-messaging-sw.js')
+        .then((registration) => {
+          swRegistration = registration;
+          console.log("تم تسجيل الـ Service Worker بنجاح:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("خطأ في تسجيل Service Worker:", err);
+        });
+    }
+
+    function updateNotifBadge() {
+      const badge = document.getElementById("notifBadge");
+      if (!('Notification' in window)) {
+        badge.innerText = "غير مدعوم";
+        return;
+      }
+      if (Notification.permission === "granted" && currentFcmToken) {
+        badge.innerText = "التنبيهات مفعلة ✓";
+        badge.className = "bg-emerald-50 text-emerald-600 border border-emerald-100 text-[11px] font-bold px-2.5 py-1 rounded-full";
+      } else {
+        badge.innerText = "التنبيهات مغلقة";
+        badge.className = "bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-full";
+      }
+    }
+    updateNotifBadge();
+
+    // تفعيل الإشعارات وتمرير الـ swRegistration إجبارياً لحل خطأ 404
+    document.getElementById("btnEnableNotifications").addEventListener("click", async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          
+          if (!swRegistration) {
+            swRegistration = await navigator.serviceWorker.ready;
+          }
+
+          const token = await messaging.getToken({ 
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: swRegistration
+          });
+
+          currentFcmToken = token;
+          localStorage.setItem("center_fcm_token", token);
+          updateNotifBadge();
+          alert("تم تفعيل الإشعارات بنجاح على هذا الجهاز! 🔔 يمكنك الآن إكمال التسجيل.");
+        } else {
+          alert("تم رفض إذن الإشعارات من إعدادات المتصفح.");
+        }
+      } catch (err) {
+        console.error("تفاصيل الخطأ:", err);
+        alert("خطأ في جلب رمز الإشعارات: " + err.message);
+      }
+    });
+
+    // دالة الإرسال المتوافقة مع Apps Script لتفادي مشاكل الـ CORS
+    async function sendToAppsScript(payload) {
+      const response = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+      return await response.json();
+    }
+
+    document.getElementById("btnRegisterStudent").addEventListener("click", async () => {
+      const name = document.getElementById("stdName").value.trim();
+      const phone = document.getElementById("stdPhone").value.trim();
+      const parentPhone = document.getElementById("stdParentPhone").value.trim();
+      const grade = document.getElementById("stdGrade").value;
+      const statusMsg = document.getElementById("regStatusMsg");
+
+      if (!name || !phone || !parentPhone || !grade) {
+        alert("يرجى ملء كافة البيانات المطلوبة!");
+        return;
+      }
+
+      statusMsg.innerText = "جاري تسجيل البيانات...";
+      statusMsg.className = "text-xs font-semibold text-center text-indigo-600 block";
+
+      try {
+        const result = await sendToAppsScript({
+          action: "registerStudent",
+          name: name,
+          phone: phone,
+          parentPhone: parentPhone,
+          grade: grade,
+          fcmToken: currentFcmToken
+        });
+
+        if (result.success) {
+          statusMsg.innerText = "✓ تم تسجيل الطالب وتفعيل التنبيهات بنجاح!";
+          statusMsg.className = "text-xs font-semibold text-center text-emerald-600 block";
+        } else {
+          statusMsg.innerText = "حدث خطأ: " + result.message;
+          statusMsg.className = "text-xs font-semibold text-center text-rose-600 block";
+        }
+      } catch (err) {
+        statusMsg.innerText = "تعذر الاتصال بالسيرفر. تأكد من صحة الرابط والاتصال.";
+        statusMsg.className = "text-xs font-semibold text-center text-rose-600 block";
+      }
+    });
+
+    async function loadData() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        if (data.centerInfo) {
+          document.getElementById("centerNameTitle").innerText = data.centerInfo.center_name || "السنتر التعليمي";
+          if (data.centerInfo.announcement) {
+            document.getElementById("announcementText").innerText = data.centerInfo.announcement;
+          }
+        }
+        document.getElementById("todayDayNameText").innerText = data.todayName || "اليوم";
+        const box = document.getElementById("todayClassesContainer");
+        if (!data.todaySchedules || data.todaySchedules.length === 0) {
+          box.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">لا توجد حصص مبرمجة لليوم.</div>';
+        } else {
+          box.innerHTML = data.todaySchedules.map(c => `
+            <div class="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div>
+                <span class="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] mb-1">${c.grade}</span>
+                <h4 class="font-bold text-xs text-slate-800">${c.subject} - ${c.teacher_name}</h4>
+              </div>
+              <div class="text-xs font-bold text-indigo-600 dir-ltr">${c.time_from} - ${c.time_to}</div>
+            </div>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+    loadData();
+
+    document.getElementById("toggleAdminBtn").addEventListener("click", () => {
+      const pin = prompt("أدخل رمز PIN للأدمن:");
+      if (pin === "123456") {
+        document.getElementById("adminSection").classList.remove("hidden");
+        window.scrollTo({ top: document.getElementById("adminSection").offsetTop, behavior: 'smooth' });
+      } else if (pin !== null) {
+        alert("رمز PIN غير صحيح!");
+      }
+    });
+
+    document.getElementById("btnSendGradePush").addEventListener("click", async () => {
+      const grade = document.getElementById("targetGradePush").value;
+      const title = document.getElementById("pushTitle").value.trim();
+      const body = document.getElementById("pushBody").value.trim();
+      const feedback = document.getElementById("pushFeedback");
+
+      if (!title || !body) {
+        alert("يرجى كتابة عنوان الإشعار ونصه!");
+        return;
+      }
+
+      feedback.innerText = "جاري إرسال التنبيه للهواتف...";
+      feedback.className = "text-xs text-center font-bold text-indigo-400 block";
+
+      try {
+        const resData = await sendToAppsScript({
+          action: "sendGradeNotification",
+          pin: "123456",
+          targetGrade: grade,
+          title: title,
+          body: body
+        });
+
+        if (resData.success) {
+          feedback.innerText = "✓ " + resData.message;
+          feedback.className = "text-xs text-center font-bold text-emerald-400 block";
+        } else {
+          feedback.innerText = "تنبيه: " + resData.message;
+          feedback.className = "text-xs text-center font-bold text-amber-400 block";
+        }
+      } catch (err) {
+        feedback.innerText = "فشل في إرسال الإشعار للسيرفر.";
+        feedback.className = "text-xs text-center font-bold text-rose-400 block";
+      }
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
