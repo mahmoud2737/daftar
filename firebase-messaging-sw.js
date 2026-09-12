@@ -22,3 +22,17 @@ messaging.onBackgroundMessage(function(payload) {
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+// الشروط الإلزامية لكي يقبل المتصفح تثبيت الموقع كتطبيق PWA
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+  // تمرير الطلبات بشكل طبيعي لإرضاء معايير PWA في أندرويد
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
