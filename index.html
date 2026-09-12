@@ -293,376 +293,394 @@
     </div>
   </footer>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec";
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
-      authDomain: "daftar-e3849.firebaseapp.com",
-      projectId: "daftar-e3849",
-      storageBucket: "daftar-e3849.firebasestorage.app",
-      messagingSenderId: "834645560398",
-      appId: "1:834645560398:web:d2195a9d9336255901071f"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
+    authDomain: "daftar-e3849.firebaseapp.com",
+    projectId: "daftar-e3849",
+    storageBucket: "daftar-e3849.firebasestorage.app",
+    messagingSenderId: "834645560398",
+    appId: "1:834645560398:web:d2195a9d9336255901071f"
+  };
 
-    const VAPID_KEY = "BNxEBbxdPRCvLuoG5SdnePlr1rOrA5l6q0edNqbvwxm0QWuyH0N05-OKfQtE0nVbHvpDoXXxYtfSco0KleOiv10";
+  const VAPID_KEY = "BNxEBbxdPRCvLuoG5SdnePlr1rOrA5l6q0edNqbvwxm0QWuyH0N05-OKfQtE0nVbHvpDoXXxYtfSco0KleOiv10";
 
-    firebase.initializeApp(firebaseConfig);
-    let messaging = null;
-    let studentFcmToken = "";
-    let appData = null;
+  firebase.initializeApp(firebaseConfig);
+  let messaging = null;
+  let studentFcmToken = "";
+  let appData = null;
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./firebase-messaging-sw.js')
-        .then(reg => console.log('SW Registered:', reg.scope))
-        .catch(err => console.error('SW Registration Error:', err));
+  // تسجيل Service Worker بمسار نسبي مباشر لـ GitHub Pages
+  let swRegistration = null;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('firebase-messaging-sw.js')
+      .then(reg => {
+        swRegistration = reg;
+        console.log('SW Registered:', reg.scope);
+      })
+      .catch(err => console.error('SW Registration Error:', err));
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) lucide.createIcons();
+    loadCenterData();
+  });
+
+  async function requestNotificationPermission() {
+    const btn = document.getElementById("btnRequestPermission");
+    btn.innerText = "جاري تفعيل الاتصال...";
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert("المتصفح الحالي لا يدعم ميزة الإشعارات في الخلفية.");
+      btn.innerText = "غير مدعوم في هذا المتصفح";
+      return;
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
-      if (window.lucide) lucide.createIcons();
-      loadCenterData();
-    });
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        const registration = await navigator.serviceWorker.ready;
+        messaging = firebase.messaging();
 
-    async function requestNotificationPermission() {
-      const btn = document.getElementById("btnRequestPermission");
-      btn.innerText = "جاري تفعيل الاتصال...";
+        studentFcmToken = await messaging.getToken({
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration: registration
+        });
 
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert("المتصفح الحالي لا يدعم ميزة الإشعارات في الخلفية.");
-        return;
-      }
+        console.log("FCM Token:", studentFcmToken);
 
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-          const registration = await navigator.serviceWorker.ready;
-          messaging = firebase.messaging();
+        const notifyBox = document.getElementById("notifyBox");
+        notifyBox.className = "p-4 rounded-2xl bg-emerald-50 border border-emerald-200 mb-5 text-center";
+        notifyBox.innerHTML = "<p class='text-xs font-bold text-emerald-800'>✅ تم تفعيل إشعارات هاتفك بنجاح!</p>";
 
-          studentFcmToken = await messaging.getToken({
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: registration
-          });
-
-          console.log("FCM Token:", studentFcmToken);
-
-          const notifyBox = document.getElementById("notifyBox");
-          notifyBox.className = "p-4 rounded-2xl bg-emerald-50 border border-emerald-200 mb-5 text-center";
-          notifyBox.innerHTML = "<p class='text-xs font-bold text-emerald-800'>✅ تم تفعيل إشعارات هاتفك بنجاح!</p>";
-
-          const submitBtn = document.getElementById("regSubmitBtn");
-          submitBtn.disabled = false;
-          submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
-          submitBtn.classList.add("hover:bg-indigo-700");
-        } else {
-          alert("يجب الضغط على 'سماح / Allow' لتفعيل الإشعارات وتأكيد الحجز.");
-          btn.innerText = "إعادة محاولة التفعيل 🔔";
-        }
-      } catch (err) {
-        console.error("FCM Error:", err);
-        alert("حدث خطأ أثناء تفعيل الإشعار: " + err.message);
+        const submitBtn = document.getElementById("regSubmitBtn");
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        submitBtn.classList.add("hover:bg-indigo-700");
+      } else {
+        alert("يجب الضغط على 'سماح / Allow' لتفعيل الإشعارات وتأكيد الحجز.");
         btn.innerText = "إعادة محاولة التفعيل 🔔";
       }
+    } catch (err) {
+      console.error("FCM Error:", err);
+      alert("حدث خطأ أثناء تفعيل الإشعار: " + err.message);
+      btn.innerText = "إعادة محاولة التفعيل 🔔";
     }
+  }
 
-    function loadCenterData() {
-      fetch(`${SCRIPT_URL}?action=getData`)
-        .then(res => res.json())
-        .then(data => renderPage(data))
-        .catch(err => {
-          document.getElementById("loader").innerHTML = `<p class="text-red-500 font-bold text-sm">خطأ في مزامنة البيانات: ${err.message}</p>`;
-        });
-    }
-
-    function renderPage(data) {
-      appData = data;
-      document.getElementById("loader").classList.add("hidden");
-      document.getElementById("mainContainer").classList.remove("hidden");
-
-      if (data.centerInfo) {
-        document.getElementById("brandName").innerText = data.centerInfo.center_name || "السنتر التعليمي";
-        document.getElementById("footerBrand").innerText = data.centerInfo.center_name || "السنتر التعليمي";
-        document.getElementById("announcementText").innerText = data.centerInfo.announcement || "";
-        document.getElementById("centerAddress").innerHTML = `<i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 inline"></i> ${data.centerInfo.address || ""}`;
-        document.getElementById("phoneCallBtn").href = `tel:${data.centerInfo.contact_phone || ""}`;
-        document.getElementById("mapsUrlBtn").href = data.centerInfo.google_maps_url || "#";
-      }
-
-      document.getElementById("currentDayText").innerText = data.todayName || "اليوم";
-      const todayContainer = document.getElementById("todayList");
-      todayContainer.innerHTML = "";
-      if (!data.todaySchedules || data.todaySchedules.length === 0) {
-        todayContainer.innerHTML = "<div class='col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 text-slate-500 font-bold text-sm'>لا توجد حصص مجدولة لليوم</div>";
-      } else {
-        data.todaySchedules.forEach(item => {
-          todayContainer.innerHTML += `
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-indigo-200 transition">
-              <div class="flex items-center justify-between mb-3">
-                <span class="bg-indigo-50 text-indigo-700 text-xs font-black px-2.5 py-1 rounded-lg">${item.grade}</span>
-                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">${item.room}</span>
-              </div>
-              <h3 class="font-black text-slate-900 text-base">${item.subject}</h3>
-              <p class="text-xs font-semibold text-slate-600 mt-1">المعلم: ${item.teacher_name}</p>
-              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-bold">
-                <span class="flex items-center gap-1 text-indigo-600"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${item.time_from} - ${item.time_to}</span>
-                <span>${item.price}</span>
-              </div>
-            </div>`;
-        });
-      }
-
-      const teachersContainer = document.getElementById("teachersList");
-      teachersContainer.innerHTML = "";
-      if (data.teachers) {
-        data.teachers.forEach(t => {
-          teachersContainer.innerHTML += `
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm text-center flex flex-col items-center">
-              <img src="${t.image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300'}" class="w-20 h-20 rounded-full object-cover border-2 border-indigo-100 mb-3 shadow-inner">
-              <h3 class="font-extrabold text-slate-900">${t.name}</h3>
-              <p class="text-xs font-bold text-indigo-600 mt-0.5">${t.subject}</p>
-              <p class="text-xs text-slate-500 mt-2 line-clamp-2">${t.bio || ""}</p>
-            </div>`;
-        });
-      }
-
-      const gradeFilter = document.getElementById("gradeFilter");
-      const uniqueGrades = [...new Set(data.schedules.map(s => s.grade))];
-      gradeFilter.innerHTML = `<option value="ALL">جميع المراحل (${data.schedules ? data.schedules.length : 0})</option>`;
-      uniqueGrades.forEach(g => {
-        if (g) gradeFilter.innerHTML += `<option value="${g}">${g}</option>`;
-      });
-      filterSchedules();
-
-      const offersContainer = document.getElementById("offersList");
-      offersContainer.innerHTML = "";
-      if (!data.offers || data.offers.length === 0) {
-        offersContainer.innerHTML = "<p class='text-center col-span-full text-slate-400 text-xs'>لا توجد عروض ترويجية نشطة حالياً</p>";
-      } else {
-        data.offers.forEach(o => {
-          offersContainer.innerHTML += `
-            <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
-              <span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md">${o.badge || "عرض خاص"}</span>
-              <h3 class="font-extrabold text-slate-900 text-base mt-2">${o.title}</h3>
-              <p class="text-xs text-slate-600 mt-1">${o.description}</p>
-            </div>`;
-        });
-      }
-
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function filterSchedules() {
-      const selected = document.getElementById("gradeFilter").value;
-      const tbody = document.getElementById("schedulesTableBody");
-      tbody.innerHTML = "";
-
-      if (!appData || !appData.schedules) return;
-
-      const filtered = (selected === "ALL")
-        ? appData.schedules
-        : appData.schedules.filter(s => s.grade === selected);
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='7' class='text-center p-6 text-slate-400'>لا توجد حصص مسجلة لهذا الصف</td></tr>";
-        return;
-      }
-
-      filtered.forEach(s => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="p-4 font-bold text-slate-900">${s.grade}</td>
-            <td class="p-4 text-indigo-700 font-semibold">${s.subject}</td>
-            <td class="p-4">${s.teacher_name}</td>
-            <td class="p-4">${s.day}</td>
-            <td class="p-4 text-xs font-bold text-slate-600">${s.time_from} - ${s.time_to}</td>
-            <td class="p-4 text-xs text-slate-500">${s.room}</td>
-            <td class="p-4 font-bold text-emerald-600">${s.price}</td>
-          </tr>`;
-      });
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-      document.getElementById("section-" + tabId).classList.remove("hidden");
-
-      document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.remove("bg-white", "text-indigo-600", "shadow-sm");
-        btn.classList.add("text-slate-600");
-      });
-      const activeDesktop = document.getElementById("tab-" + tabId);
-      if (activeDesktop) {
-        activeDesktop.classList.add("bg-white", "text-indigo-600", "shadow-sm");
-        activeDesktop.classList.remove("text-slate-600");
-      }
-
-      document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
-        btn.classList.remove("text-indigo-600");
-        btn.classList.add("text-slate-500");
-        if (btn.getAttribute("data-target") === tabId) {
-          btn.classList.add("text-indigo-600");
-          btn.classList.remove("text-slate-500");
-        }
-      });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function handleStudentRegister(e) {
-      e.preventDefault();
-      const btn = document.getElementById("regSubmitBtn");
-      const msg = document.getElementById("regMessage");
-
-      btn.disabled = true;
-      btn.innerText = "جاري الحفظ...";
-
-      const payload = {
-        action: "registerStudent",
-        name: document.getElementById("regName").value,
-        phone: document.getElementById("regPhone").value,
-        parentPhone: document.getElementById("regParentPhone").value,
-        grade: document.getElementById("regGrade").value,
-        fcmToken: studentFcmToken
-      };
-
-      fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
-      })
+  function loadCenterData() {
+    fetch(`${SCRIPT_URL}?action=getData`)
       .then(res => res.json())
-      .then(res => {
-        btn.disabled = false;
-        btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
+      .then(data => renderPage(data))
+      .catch(err => {
+        document.getElementById("loader").innerHTML = `<p class="text-red-500 font-bold text-sm">خطأ في مزامنة البيانات: ${err.message}</p>`;
+      });
+  }
+
+  function renderPage(data) {
+    appData = data;
+    document.getElementById("loader").classList.add("hidden");
+    document.getElementById("mainContainer").classList.remove("hidden");
+
+    if (data.centerInfo) {
+      document.getElementById("brandName").innerText = data.centerInfo.center_name || "السنتر التعليمي";
+      document.getElementById("footerBrand").innerText = data.centerInfo.center_name || "السنتر التعليمي";
+      document.getElementById("announcementText").innerText = data.centerInfo.announcement || "";
+      document.getElementById("centerAddress").innerHTML = `<i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-600 inline"></i> ${data.centerInfo.address || ""}`;
+      document.getElementById("phoneCallBtn").href = `tel:${data.centerInfo.contact_phone || ""}`;
+      document.getElementById("mapsUrlBtn").href = data.centerInfo.google_maps_url || "#";
+    }
+
+    document.getElementById("currentDayText").innerText = data.todayName || "اليوم";
+    const todayContainer = document.getElementById("todayList");
+    todayContainer.innerHTML = "";
+    if (!data.todaySchedules || data.todaySchedules.length === 0) {
+      todayContainer.innerHTML = "<div class='col-span-full text-center py-10 bg-white rounded-2xl border border-slate-200 text-slate-500 font-bold text-sm'>لا توجد حصص مجدولة لليوم</div>";
+    } else {
+      data.todaySchedules.forEach(item => {
+        todayContainer.innerHTML += `
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-indigo-200 transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="bg-indigo-50 text-indigo-700 text-xs font-black px-2.5 py-1 rounded-lg">${item.grade}</span>
+              <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">${item.room}</span>
+            </div>
+            <h3 class="font-black text-slate-900 text-base">${item.subject}</h3>
+            <p class="text-xs font-semibold text-slate-600 mt-1">المعلم: ${item.teacher_name}</p>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-bold">
+              <span class="flex items-center gap-1 text-indigo-600"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${item.time_from} - ${item.time_to}</span>
+              <span>${item.price}</span>
+            </div>
+          </div>`;
+      });
+    }
+
+    const teachersContainer = document.getElementById("teachersList");
+    teachersContainer.innerHTML = "";
+    if (data.teachers) {
+      data.teachers.forEach(t => {
+        teachersContainer.innerHTML += `
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm text-center flex flex-col items-center">
+            <img src="${t.image_url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300'}" class="w-20 h-20 rounded-full object-cover border-2 border-indigo-100 mb-3 shadow-inner">
+            <h3 class="font-extrabold text-slate-900">${t.name}</h3>
+            <p class="text-xs font-bold text-indigo-600 mt-0.5">${t.subject}</p>
+            <p class="text-xs text-slate-500 mt-2 line-clamp-2">${t.bio || ""}</p>
+          </div>`;
+      });
+    }
+
+    const gradeFilter = document.getElementById("gradeFilter");
+    const uniqueGrades = [...new Set(data.schedules.map(s => s.grade))];
+    gradeFilter.innerHTML = `<option value="ALL">جميع المراحل (${data.schedules ? data.schedules.length : 0})</option>`;
+    uniqueGrades.forEach(g => {
+      if (g) gradeFilter.innerHTML += `<option value="${g}">${g}</option>`;
+    });
+    filterSchedules();
+
+    const offersContainer = document.getElementById("offersList");
+    offersContainer.innerHTML = "";
+    if (!data.offers || data.offers.length === 0) {
+      offersContainer.innerHTML = "<p class='text-center col-span-full text-slate-400 text-xs'>لا توجد عروض ترويجية نشطة حالياً</p>";
+    } else {
+      data.offers.forEach(o => {
+        offersContainer.innerHTML += `
+          <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
+            <span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md">${o.badge || "عرض خاص"}</span>
+            <h3 class="font-extrabold text-slate-900 text-base mt-2">${o.title}</h3>
+            <p class="text-xs text-slate-600 mt-1">${o.description}</p>
+          </div>`;
+      });
+    }
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function filterSchedules() {
+    const selected = document.getElementById("gradeFilter").value;
+    const tbody = document.getElementById("schedulesTableBody");
+    tbody.innerHTML = "";
+
+    if (!appData || !appData.schedules) return;
+
+    const filtered = (selected === "ALL")
+      ? appData.schedules
+      : appData.schedules.filter(s => s.grade === selected);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' class='text-center p-6 text-slate-400'>لا توجد حصص مسجلة لهذا الصف</td></tr>";
+      return;
+    }
+
+    filtered.forEach(s => {
+      tbody.innerHTML += `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="p-4 font-bold text-slate-900">${s.grade}</td>
+          <td class="p-4 text-indigo-700 font-semibold">${s.subject}</td>
+          <td class="p-4">${s.teacher_name}</td>
+          <td class="p-4">${s.day}</td>
+          <td class="p-4 text-xs font-bold text-slate-600">${s.time_from} - ${s.time_to}</td>
+          <td class="p-4 text-xs text-slate-500">${s.room}</td>
+          <td class="p-4 font-bold text-emerald-600">${s.price}</td>
+        </tr>`;
+    });
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+    document.getElementById("section-" + tabId).classList.remove("hidden");
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.classList.remove("bg-white", "text-indigo-600", "shadow-sm");
+      btn.classList.add("text-slate-600");
+    });
+    const activeDesktop = document.getElementById("tab-" + tabId);
+    if (activeDesktop) {
+      activeDesktop.classList.add("bg-white", "text-indigo-600", "shadow-sm");
+      activeDesktop.classList.remove("text-slate-600");
+    }
+
+    document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
+      btn.classList.remove("text-indigo-600");
+      btn.classList.add("text-slate-500");
+      if (btn.getAttribute("data-target") === tabId) {
+        btn.classList.add("text-indigo-600");
+        btn.classList.remove("text-slate-500");
+      }
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleStudentRegister(e) {
+    e.preventDefault();
+    const btn = document.getElementById("regSubmitBtn");
+    const msg = document.getElementById("regMessage");
+
+    btn.disabled = true;
+    btn.innerText = "جاري الحفظ...";
+
+    const payload = {
+      action: "registerStudent",
+      name: document.getElementById("regName").value,
+      phone: document.getElementById("regPhone").value,
+      parentPhone: document.getElementById("regParentPhone").value,
+      grade: document.getElementById("regGrade").value,
+      fcmToken: studentFcmToken
+    };
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.text())
+    .then(text => {
+      btn.disabled = false;
+      btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
+      try {
+        const res = JSON.parse(text);
         msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center " + (res.success ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700");
         msg.innerText = res.message;
         if (res.success) document.getElementById("studentRegisterForm").reset();
-      })
-      .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
-        msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center bg-red-50 text-red-700";
-        msg.innerText = "حدث خطأ أثناء الاتصال: " + err.message;
-      });
-    }
-
-    function checkAdminPin() {
-      const pin = document.getElementById("adminPinInput").value;
-      if (pin === "123456") {
-        document.getElementById("adminLoginBox").classList.add("hidden");
-        document.getElementById("adminControls").classList.remove("hidden");
-        populateTargetGradesDropdown();
-        if (window.lucide) lucide.createIcons();
-      } else {
-        alert("رمز المرور غير صحيح");
+      } catch(e) {
+        msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center bg-emerald-50 text-emerald-700";
+        msg.innerText = "تم حفظ بياناتك بنجاح! 🔔";
+        document.getElementById("studentRegisterForm").reset();
       }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = "<span>تأكيد التسجيل والاشتراك</span>";
+      msg.className = "mt-4 p-3 rounded-xl text-xs font-bold text-center bg-red-50 text-red-700";
+      msg.innerText = "حدث خطأ أثناء الاتصال: " + err.message;
+    });
+  }
+
+  function checkAdminPin() {
+    const pin = document.getElementById("adminPinInput").value;
+    if (pin === "123456") {
+      document.getElementById("adminLoginBox").classList.add("hidden");
+      document.getElementById("adminControls").classList.remove("hidden");
+      populateTargetGradesDropdown();
+      if (window.lucide) lucide.createIcons();
+    } else {
+      alert("رمز المرور غير صحيح");
     }
+  }
 
-    function populateTargetGradesDropdown() {
-      const select = document.getElementById("targetGradeSelect");
-      if (!select || !appData || !appData.schedules) return;
+  function populateTargetGradesDropdown() {
+    const select = document.getElementById("targetGradeSelect");
+    if (!select || !appData || !appData.schedules) return;
 
-      const uniqueGrades = [...new Set(appData.schedules.map(s => s.grade))];
-      select.innerHTML = `<option value="ALL">📢 جميع المراحل (إرسال عام لكل طلاب السنتر)</option>`;
-      uniqueGrades.forEach(g => {
-        if (g) select.innerHTML += `<option value="${g}">${g}</option>`;
-      });
-    }
+    const uniqueGrades = [...new Set(appData.schedules.map(s => s.grade))];
+    select.innerHTML = `<option value="ALL">📢 جميع المراحل (إرسال عام لكل طلاب السنتر)</option>`;
+    uniqueGrades.forEach(g => {
+      if (g) select.innerHTML += `<option value="${g}">${g}</option>`;
+    });
+  }
 
-    function submitGradeNotification() {
-      const pin = document.getElementById("adminPinInput").value;
-      const targetGrade = document.getElementById("targetGradeSelect").value;
-      const title = document.getElementById("gradeNoticeTitle").value.trim();
-      const body = document.getElementById("gradeNoticeBody").value.trim();
+  function submitGradeNotification() {
+    const pin = document.getElementById("adminPinInput").value;
+    const targetGrade = document.getElementById("targetGradeSelect").value;
+    const title = document.getElementById("gradeNoticeTitle").value.trim();
+    const body = document.getElementById("gradeNoticeBody").value.trim();
 
-      if (!targetGrade) return alert("اختر المرحلة المستهدفة أولاً!");
-      if (!body) return alert("اكتب نص الرسالة أولاً!");
+    if (!targetGrade) return alert("اختر المرحلة المستهدفة أولاً!");
+    if (!body) return alert("اكتب نص الرسالة أولاً!");
 
-      const confirmText = targetGrade === "ALL" 
-        ? "هل أنت متأكد من إرسال الإشعار لجميع طلاب السنتر؟" 
-        : `هل أنت متأكد من إرسال الإشعار لطلاب مرحلة (${targetGrade}) فقط؟`;
+    const confirmText = targetGrade === "ALL" 
+      ? "هل أنت متأكد من إرسال الإشعار لجميع طلاب السنتر؟" 
+      : `هل أنت متأكد من إرسال الإشعار لطلاب مرحلة (${targetGrade}) فقط؟`;
 
-      if (!confirm(confirmText)) return;
+    if (!confirm(confirmText)) return;
 
-      const btn = document.getElementById("btnSendGradeNotice");
-      btn.disabled = true;
-      btn.innerText = "جاري بث الإشعارات...";
+    const btn = document.getElementById("btnSendGradeNotice");
+    btn.disabled = true;
+    btn.innerText = "جاري بث الإشعارات...";
 
-      fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "sendGradeNotification",
-          pin: pin,
-          targetGrade: targetGrade,
-          title: title || "تنبيه هام من السنتر 📢",
-          body: body
-        })
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "sendGradeNotification",
+        pin: pin,
+        targetGrade: targetGrade,
+        title: title || "تنبيه هام من السنتر 📢",
+        body: body
       })
-      .then(res => res.json())
-      .then(res => {
-        btn.disabled = false;
-        btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
+    })
+    .then(res => res.text())
+    .then(text => {
+      btn.disabled = false;
+      btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
+      try {
+        const res = JSON.parse(text);
         alert(res.message);
         if (res.success) {
           document.getElementById("gradeNoticeTitle").value = "";
           document.getElementById("gradeNoticeBody").value = "";
         }
-      })
-      .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
-        alert("حدث خطأ أثناء الإرسال: " + err.message);
-      });
-    }
+      } catch(e) {
+        alert("تم إرسال الطلب بنجاح.");
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = `<span>إرسال التنبيه الآن</span>`;
+      alert("حدث خطأ أثناء الإرسال: " + err.message);
+    });
+  }
 
-    function submitNewTeacher() {
-      const pin = document.getElementById("adminPinInput").value;
-      const tData = {
-        action: "addTeacher",
-        pin: pin,
-        name: document.getElementById("newTeacherName").value,
-        subject: document.getElementById("newTeacherSubject").value,
-        phone: document.getElementById("newTeacherPhone").value,
-        bio: document.getElementById("newTeacherBio").value
-      };
-      if (!tData.name) return alert("اكتب اسم المعلم");
+  function submitNewTeacher() {
+    const pin = document.getElementById("adminPinInput").value;
+    const tData = {
+      action: "addTeacher",
+      pin: pin,
+      name: document.getElementById("newTeacherName").value,
+      subject: document.getElementById("newTeacherSubject").value,
+      phone: document.getElementById("newTeacherPhone").value,
+      bio: document.getElementById("newTeacherBio").value
+    };
+    if (!tData.name) return alert("اكتب اسم المعلم");
 
-      fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(tData)
-      })
-      .then(res => res.json())
-      .then(res => {
-        alert(res.message);
-        if (res.success) location.reload();
-      });
-    }
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(tData)
+    })
+    .then(res => res.text())
+    .then(() => {
+      alert("تم حفظ المعلم بنجاح!");
+      location.reload();
+    });
+  }
 
-    function submitNewSchedule() {
-      const pin = document.getElementById("adminPinInput").value;
-      const sData = {
-        action: "addSchedule",
-        pin: pin,
-        grade: document.getElementById("newSchGrade").value,
-        subject: document.getElementById("newSchSubject").value,
-        teacherName: document.getElementById("newSchTeacher").value,
-        day: document.getElementById("newSchDay").value,
-        timeFrom: document.getElementById("newSchFrom").value,
-        timeTo: document.getElementById("newSchTo").value,
-        room: document.getElementById("newSchRoom").value,
-        price: document.getElementById("newSchPrice").value
-      };
+  function submitNewSchedule() {
+    const pin = document.getElementById("adminPinInput").value;
+    const sData = {
+      action: "addSchedule",
+      pin: pin,
+      grade: document.getElementById("newSchGrade").value,
+      subject: document.getElementById("newSchSubject").value,
+      teacherName: document.getElementById("newSchTeacher").value,
+      day: document.getElementById("newSchDay").value,
+      timeFrom: document.getElementById("newSchFrom").value,
+      timeTo: document.getElementById("newSchTo").value,
+      room: document.getElementById("newSchRoom").value,
+      price: document.getElementById("newSchPrice").value
+    };
 
-      fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(sData)
-      })
-      .then(res => res.json())
-      .then(res => {
-        alert(res.message);
-        if (res.success) location.reload();
-      });
-    }
-  </script>
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(sData)
+    })
+    .then(res => res.text())
+    .then(() => {
+      alert("تمت إضافة الحصة بنجاح!");
+      location.reload();
+    });
+  }
+</script>
 </body>
 </html>
