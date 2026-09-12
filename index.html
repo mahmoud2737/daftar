@@ -152,13 +152,10 @@
   </main>
 
   <script>
-    // 1. رابط الـ Web App المنشور من Apps Script
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjY1zI5R0L-aF7Bw7UuR8c_test/exec"; 
-    
-    // مفتاح VAPID العام من Firebase Console
-    const VAPID_KEY = "BDyC6b7rYwQ_YOUR_FIREBASE_KEY";
+    // 1. البيانات الرسمية والمفاتيح الخاصة بمشروعك
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze5J4_QTJRA6mV0l0wzn6aH0MJBq2MFypOlULWoz_0VMxJkCcFacy2CBJJXIBFnXcO/exec"; 
+    const VAPID_KEY = "BNxEBbxdPRCvLuoG5SdnePlr1rOrA5l6q0edNqbvwxm0QWuyH0N05-OKfQtE0nVbHvpDoXXxYtfSco0KleOiv10";
 
-    // 2. إعدادات Firebase الخاصة بمشروع daftar-e3849
     const firebaseConfig = {
       apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
       authDomain: "daftar-e3849.firebaseapp.com",
@@ -172,8 +169,8 @@
     const messaging = ('Notification' in window) ? firebase.messaging() : null;
     let currentFcmToken = localStorage.getItem("center_fcm_token") || "";
 
-    // 3. تثبيت المسار المطلق لمستودع daftar لمنع أخطاء الـ 404
-    const SW_URL = 'https://mahmoud2737.github.io/daftar/firebase-messaging-sw.js';
+    // 2. تسجيل الـ Service Worker بالمسار الدقيق لمستودع daftar مع تفادي الكاش القديم
+    const SW_URL = 'https://mahmoud2737.github.io/daftar/firebase-messaging-sw.js?v=2';
     const SW_SCOPE = '/daftar/';
     let swRegistration = null;
 
@@ -181,7 +178,7 @@
       navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE })
         .then((reg) => {
           swRegistration = reg;
-          console.log("تم تسجيل الـ Service Worker بنجاح في نطاق:", reg.scope);
+          console.log("تم تفعيل الـ Service Worker بنجاح لنطاق:", reg.scope);
         })
         .catch((err) => {
           console.error("فشل تسجيل Service Worker:", err);
@@ -204,7 +201,7 @@
     }
     updateNotifBadge();
 
-    // 4. تفعيل الإشعارات وتمرير swRegistration مباشرة لـ Firebase
+    // 3. تفعيل الإشعارات وجلب التوكن
     document.getElementById("btnEnableNotifications").addEventListener("click", async () => {
       try {
         const permission = await Notification.requestPermission();
@@ -232,7 +229,7 @@
       }
     });
 
-    // 5. دالة الإرسال المتوافقة مع Apps Script لتفادي مشاكل الـ CORS
+    // 4. دالة الإرسال الآمنة الخالية من مشاكل الـ CORS
     async function sendToAppsScript(payload) {
       const response = await fetch(SCRIPT_URL, {
         method: "POST",
@@ -307,7 +304,9 @@
             </div>
           `).join('');
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("خطأ تحميل البيانات:", e);
+      }
     }
     loadData();
 
