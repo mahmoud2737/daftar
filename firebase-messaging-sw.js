@@ -12,8 +12,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// استلام الإشعارات في الخلفية
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(function(payload) {
   const notificationTitle = (payload.notification && payload.notification.title) || 'تنبيه من السنتر 📢';
   const notificationOptions = {
     body: (payload.notification && payload.notification.body) || '',
@@ -24,19 +23,10 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// تفعيل PWA بدون إفساد استجابات الشبكة
-self.addEventListener('install', (event) => {
+self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', function(event) {
   event.waitUntil(clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-    })
-  );
 });
