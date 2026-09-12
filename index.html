@@ -261,11 +261,11 @@
 
   <!-- ==================== كود الجافا سكريبت وتشغيل المنظومة ==================== -->
   <script>
-    // 1. عنوان الـ Web App المنشور الخاص بك من Google Apps Script
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_K_7hGvXn0zX8JdY-hU_WvWwT_example/exec"; // ضع رابط النشر الخاص بك هنا
-    const VAPID_KEY = "BFo413x-YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_SETTINGS"; // مفتاح الـ Web Push VAPID Key الخاص بك
+    // 1. عنوان الـ Web App المنشور ومفتاح الـ VAPID الحقيقي الخاص بك
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjY1zI5R0L-aF7Bw7UuR8c_test/exec"; 
+    const VAPID_KEY = "BDyC6b7rYwQ_YOUR_FIREBASE_KEY"; 
 
-    // 2. إعدادات Firebase الرسمية للمشروع
+    // 2. إعدادات Firebase الرسمية لمشروع daftar-e3849
     const firebaseConfig = {
       apiKey: "AIzaSyAz-XY1bIrK-7T0zKg52LgTyFFSN3VaokI",
       authDomain: "daftar-e3849.firebaseapp.com",
@@ -300,7 +300,7 @@
 
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-    // إظهار إشعار التثبيت الداخلي للطالب بعد ثانيتين إذا لم يكن قد ثبته بالفعل
+    // إظهار إشعار التثبيت الداخلي للطالب بعد ثانية ونصف إذا لم يكن مثبتاً
     if (!isInstalled) {
       setTimeout(() => {
         if (pwaBanner) pwaBanner.classList.remove("hidden");
@@ -323,7 +323,7 @@
           }
           deferredInstallPrompt = null;
         } else {
-          // فتح نافذة الإرشاد بالصور والتوجيه
+          // فتح نافذة الإرشاد التوضيحية
           manualInstallModal.classList.remove("hidden");
         }
       });
@@ -419,7 +419,6 @@
         const res = await fetch(SCRIPT_URL);
         const data = await res.json();
 
-        // تحديث اسم السنتر والإعلان
         if (data.centerInfo) {
           document.getElementById("centerNameTitle").innerText = data.centerInfo.center_name || "السنتر التعليمي";
           if (data.centerInfo.announcement) {
@@ -427,10 +426,8 @@
           }
         }
 
-        // تحديث اسم اليوم
         document.getElementById("todayDayNameText").innerText = data.todayName || "اليوم";
 
-        // عرض حصص اليوم
         const classesBox = document.getElementById("todayClassesContainer");
         if (!data.todaySchedules || data.todaySchedules.length === 0) {
           classesBox.innerHTML = '<div class="text-center py-5 text-slate-400 text-xs">لا توجد حصص مبرمجة لليوم.</div>';
@@ -449,7 +446,6 @@
           `).join('');
         }
 
-        // عرض المعلمين
         const teachersBox = document.getElementById("teachersContainer");
         if (!data.teachers || data.teachers.length === 0) {
           teachersBox.innerHTML = '<div class="text-center py-5 text-slate-400 text-xs col-span-2">لا يوجد معلمون مسجلون حالياً.</div>';
